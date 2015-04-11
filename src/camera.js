@@ -20,13 +20,11 @@ Camera.prototype.init = function() {
     this.camFeed.width = this.width;
     this.camFeed.height = this.height;
     this.camFeed.autoPlay = true;
-    document.body.appendChild(this.camFeed);
 
     this.canvas = document.createElement("canvas");
     this.canvas.width = this.width;
     this.canvas.height = this.height;
     this.ctx = this.canvas.getContext('2d');
-    document.body.appendChild(this.canvas);
 };
 
 Camera.prototype.takePhoto = function(callback) {
@@ -58,9 +56,14 @@ Camera.prototype.waitStream = function() {
             self.localStream.stop();
 
             self.callback( self.canvas.toDataURL() );
+            self.cleanCanvas();
         }
         
     }, 100);
+};
+
+Camera.prototype.cleanCanvas = function() {
+    this.ctx.clearRect(0, 0, this.width, this.height);
 };
 
 module.exports = new Camera();
