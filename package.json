@@ -1,5 +1,5 @@
 {
-  "name": "take-photos",
+  "name": "selfielaps",
   "version": "1.0.0",
   "description": "",
   "main": "src/index.html",
@@ -9,6 +9,7 @@
   "author": "",
   "license": "ISC",
   "devDependencies": {
+    "deferred": "^0.7.2"
   },
   "window": {
     "show": false,

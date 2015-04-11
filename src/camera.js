@@ -1,7 +1,8 @@
-var Camera = function() {
+var Camera = function () {
     this.width = 320;
     this.height = 240;
 
+    this.processing = false;
     this.camFeed = null;
     this.canvas = null;
     this.localStream = null;
@@ -10,7 +11,7 @@ var Camera = function() {
     this.init();
 };
 
-Camera.prototype.init = function() {
+Camera.prototype.init = function () {
     if(!navigator.webkitGetUserMedia) {
         throw "No support";
         console.log("error");
@@ -27,27 +28,32 @@ Camera.prototype.init = function() {
     this.ctx = this.canvas.getContext('2d');
 };
 
-Camera.prototype.takePhoto = function(callback) {
+Camera.prototype.takePhoto = function (callback) {
+    if (this.processing) {
+        return false;
+    }
+    
     this.callback = callback;
+    this.processing = true;
 
-    navigator.webkitGetUserMedia ({ video: true }, this.onStream.bind(this), function(){
+    navigator.webkitGetUserMedia ({ video: true }, this.onStream.bind(this), function (){
         throw "Error";
         console.log("error");
     });
 };
 
-Camera.prototype.onStream = function(stream) {
+Camera.prototype.onStream = function (stream) {
     this.camFeed.src = URL.createObjectURL(stream);
     this.localStream = stream;
 
     this.waitStream();
 };
 
-Camera.prototype.waitStream = function() {
+Camera.prototype.waitStream = function () {
     var self = this,
         imgData = null;
 
-    var checkImage = window.setInterval(function(){
+    var checkImage = window.setInterval(function (){
         self.ctx.drawImage(self.camFeed, 0, 0, self.width, self.height);
         imgData = self.ctx.getImageData(0, 0, 1, 1);
 
@@ -57,12 +63,13 @@ Camera.prototype.waitStream = function() {
 
             self.callback( self.canvas.toDataURL() );
             self.cleanCanvas();
+            self.processing = false;
         }
         
     }, 100);
 };
 
-Camera.prototype.cleanCanvas = function() {
+Camera.prototype.cleanCanvas = function () {
     this.ctx.clearRect(0, 0, this.width, this.height);
 };
 

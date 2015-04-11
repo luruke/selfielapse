@@ -4,35 +4,95 @@ var Database = function() {
     this.dbDesc = "store snapshot from webcam";
     this.db = null; //websql instance
 
-    this.initialize();
+    this.defaultSettings = {
+        saveLocation: process.env[(process.platform == 'win32') ? 'USERPROFILE' : 'HOME'] + '/selfielapse',
+        shootEach: 3600, //in seconds, 1h
+    };
 
-    // Query out the data
-    /*db.transaction(function (tx) {
-      tx.executeSql('SELECT * FROM foo', [], function (tx, results) {
-        var len = results.rows.length, i;
-        for (i = 0; i < len; i++) {
-          alert(results.rows.item(i).text);
-        }
-      });
-    });*/
+    this.initialize();
 };
 
-Database.prototype.initialize = function() {
+Database.prototype.sql = function (str, data) {
+    data = data || [];
+    var def = deferred();
+
+    this.db.transaction(function (tx){
+        tx.executeSql(str, data,
+            function(tx, results){
+                def.resolve(results);
+            },
+            function(tx, e){
+                var msg = '('+e.code+') '+e.message;
+                window.alert(msg);
+                def.reject(msg);
+            }
+        );
+    });
+
+    return def.promise;
+};
+
+Database.prototype.drop = function() {
+    this.sql('DROP TABLE snapshots');
+    this.sql('DROP TABLE settings');
+};
+
+Database.prototype.initialize = function () {
+    var self = this;
+
     this.db = window.openDatabase(this.dbName, this.dbVersion, this.dbDesc, 2 * 1024 * 1024);
 
-    this.db.transaction(function(tx){
-        tx.executeSql('CREATE TABLE IF NOT EXISTS snapshots (id unique, text)');
-    });
+    this.drop();//temporary, start a fresh session
+    self.sql('CREATE TABLE IF NOT EXISTS snapshots (id INTEGER PRIMARY KEY, filename VARCHAR)');
+    self.sql('CREATE TABLE IF NOT EXISTS settings (key VARCHAR, value VARCHAR)');
+
+    for(key in self.defaultSettings){
+        self.sql('INSERT OR IGNORE INTO settings (key, value) VALUES(?, ?)', [key, self.defaultSettings[key]])
+    }
 };
 
-Database.prototype.hasTodaySnapshot = function() {
+Database.prototype.hasTodaySnapshot = function () {
     return false;
 };
 
-Database.prototype.addSnapshot = function(fileName) {
-    this.db.transaction(function(tx){
-        tx.executeSql('INSERT INTO snapshots (id, text) VALUES (1, "'+ fileName +'")');
+Database.prototype.addSnapshot = function (fileName) {
+    return this.sql('INSERT INTO snapshots (filename) VALUES (?)', [ fileName ]);
+};
+
+Database.prototype.getSetting = function (key) {
+    var self = this;
+    var def = deferred();
+
+    this.sql('SELECT * FROM settings WHERE key=?', [ key ])
+        .then(function (results) {
+            if (!results.rows.length) {
+                def.reject(false);
+            };
+
+            def.resolve(results.rows.item(0).value);
     });
+
+    return def.promise;
+};
+
+Database.prototype.setSetting = function (key, value, callback) {
+    var self = this;
+    var def = deferred();
+
+    this.getSetting(key).then(
+        function (result){
+            self.sql('UPDATE settings SET value=? WHERE key=?', [ value, key ]).then(function(){
+                def.resolve();
+            }); 
+        },
+        function (result){
+            self.sql('INSERT INTO settings (key, value) VALUES (?, ?)', [ key, value ]).then(function(){
+                def.resolve();
+            });
+        }
+    );
+
+    return def.promise;
 };
 
 module.exports = new Database();
