@@ -1,4 +1,4 @@
-# Selfielapse
+#Selfielapse
 Selfielaps is a simple desktop app that runs in background.
 It takes (at least it should :D) a photo per day (probably when you turn on your computer the first time in the day).
 
@@ -6,3 +6,9 @@ It takes (at least it should :D) a photo per day (probably when you turn on your
 it use nw.js (ex node-webkit).
 
 Work in progress.
+
+
+#Instructions for build
+install https://github.com/mllrsohn/node-webkit-builder
+
+node build.js

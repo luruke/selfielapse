@@ -33,8 +33,8 @@ Database.prototype.sql = function (str, data) {
 };
 
 Database.prototype.drop = function() {
-    this.sql('DROP TABLE snapshots');
-    this.sql('DROP TABLE settings');
+    this.sql('DROP TABLE IF EXISTS snapshots');
+    this.sql('DROP TABLE IF EXISTS settings');
 };
 
 Database.prototype.initialize = function () {
@@ -42,8 +42,8 @@ Database.prototype.initialize = function () {
 
     this.db = window.openDatabase(this.dbName, this.dbVersion, this.dbDesc, 2 * 1024 * 1024);
 
-    this.drop();//temporary, start a fresh session
-    self.sql('CREATE TABLE IF NOT EXISTS snapshots (id INTEGER PRIMARY KEY, filename VARCHAR)');
+    this.drop(); //temporary, start a fresh session
+    self.sql('CREATE TABLE IF NOT EXISTS snapshots (id INTEGER PRIMARY KEY, filename VARCHAR, timestamp TEXT)');
     self.sql('CREATE TABLE IF NOT EXISTS settings (key VARCHAR, value VARCHAR)');
 
     for(key in self.defaultSettings){
@@ -53,10 +53,12 @@ Database.prototype.initialize = function () {
 
 Database.prototype.hasTodaySnapshot = function () {
     return false;
+
+    //select max(datetime) from tableName;
 };
 
 Database.prototype.addSnapshot = function (fileName) {
-    return this.sql('INSERT INTO snapshots (filename) VALUES (?)', [ fileName ]);
+    return this.sql('INSERT INTO snapshots (filename, timestamp) VALUES (?, ?)', [ fileName, Date.now() ]);
 };
 
 Database.prototype.getSetting = function (key) {

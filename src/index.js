@@ -3,6 +3,8 @@ var events = require('events');
 var eventEmitter = new events.EventEmitter();
 var gui = require('nw.gui');
 var deferred = require('deferred');
+var os = require('os');
+var exec = require('child_process').exec;
 var consts = {
     savingDir: process.env[(process.platform == 'win32') ? 'USERPROFILE' : 'HOME'] + '/selfielapse'
 };
@@ -14,6 +16,8 @@ global.URL = URL;
 global.gui = gui;
 global.eventEmitter = eventEmitter;
 global.deferred = deferred;
+global.os = os;
+global.exec = exec;
 global.consts = consts;
 
 window.SelfieLapse = function (){
@@ -27,20 +31,17 @@ window.SelfieLapse = function (){
         fs.mkdirSync(consts.savingDir);
     }
 
- /*   this.db.setSetting('saveLocation', '/Users/luruke/test', function(){
-        self.db.getSetting('saveLocation', function (value){
-            window.alert(value);
-        });    
-    });*/
-
     this.takeAndSavePhoto = function () {
         eventEmitter.emit('takingPhoto');
         this.camera.takePhoto(function(base64){
             base64 = base64.replace(/^data:image\/png;base64,/, '');
 
-            fs.writeFile(consts.savingDir + '/'+ Date.now() +'.png', base64, 'base64', function(err){
+            var filename = Date.now() + '.png';
+
+            fs.writeFile(consts.savingDir + '/'+ filename, base64, 'base64', function(err){
                 if (err) throw err;
 
+                self.db.addSnapshot(filename);
                 eventEmitter.emit('endtakingPhoto');
             });
         });
@@ -48,7 +49,9 @@ window.SelfieLapse = function (){
 
     eventEmitter.on('takePhoto', this.takeAndSavePhoto.bind(this));
 
-    //window.setInterval(this.takeAndSavePhoto.bind(this), 60000);
+    window.setInterval(function(){
+        eventEmitter.emit('takePhoto');
+    }, 60 * 1000);
 };
 
 
