@@ -12,3 +12,8 @@ Work in progress.
 install https://github.com/mllrsohn/node-webkit-builder
 
 node build.js
+
+
+#TODO
+- Autorun
+- Autoupdate

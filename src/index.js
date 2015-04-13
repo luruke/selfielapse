@@ -97,6 +97,10 @@ window.SelfieLapse = function (){
 
 
 document.addEventListener("DOMContentLoaded", function () {
-    var app = new SelfieLapse();
-    app.init()
+    try {
+        var app = new SelfieLapse();
+        app.init();
+    } catch(err) {
+        window.alert('Error:', err);
+    }
 });
