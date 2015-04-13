@@ -20,7 +20,7 @@ Camera.prototype.init = function () {
     this.camFeed = document.createElement("video");
     this.camFeed.width = this.width;
     this.camFeed.height = this.height;
-    this.camFeed.autoPlay = true;
+    this.camFeed.autoplay = true;
 
     this.canvas = document.createElement("canvas");
     this.canvas.width = this.width;
@@ -59,13 +59,18 @@ Camera.prototype.waitStream = function () {
 
         if(imgData.data[0] !== 0 || imgData.data[1] !== 0 || imgData.data[2] !== 0) {
             window.clearInterval(checkImage);
-            self.localStream.stop();
 
-            self.callback( self.canvas.toDataURL() );
-            self.cleanCanvas();
-            self.processing = false;
+            //it turns out that some recent iSight make a fade from black at the beginning
+            window.setTimeout(function(){
+                self.ctx.drawImage(self.camFeed, 0, 0, self.width, self.height);
+                self.localStream.stop();
+
+                self.callback( self.canvas.toDataURL() );
+                self.cleanCanvas();
+                self.processing = false;
+            }, 500);
         }
-        
+
     }, 100);
 };
 
