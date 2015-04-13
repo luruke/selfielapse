@@ -51,33 +51,27 @@ Database.prototype.initialize = function () {
     }
 };
 
-//return true if it's time to add a new photo!
-Database.prototype.isTimeExpired = function () {
-    var self = this;
-    var def = deferred();
+//resolve giving the timestamp for the next shooting
+//it could be also a timestamp in the past!
+Database.prototype.getNextShootingTimestamp = function () {
+    var self = this,
+        def = deferred(),
+        now = Date.now();
 
     this.sql('SELECT MAX(timestamp) as timestamp from snapshots')
         .then(function(results){
 
             if(!results.rows.length || !results.rows.item(0).timestamp) {
                 //there is no photo on the db yet
-                def.resolve();
+                return def.resolve( now );
             }
 
-            var lastTimeStamp = parseInt( results.rows.item(0).timestamp ),
-                currentTimeStamp = Date.now(),
-                difference = parseInt( (currentTimeStamp - lastTimeStamp) / 1000 ); //secs
+            var lastTimeStamp = parseInt( results.rows.item(0).timestamp );
 
             self.getSetting('shootEach').then(function(value) {
                 value = parseInt(value);
 
-                if (difference > value) {
-                    return def.resolve();
-                } else {
-                    var nextShootTimestamp = lastTimeStamp + (value * 1000);
-                    eventEmitter.emit('nextShoot', nextShootTimestamp);
-                    return def.reject();
-                }
+                return def.resolve( lastTimeStamp + (value * 1000) );
             });
 
         });
@@ -97,7 +91,7 @@ Database.prototype.getSetting = function (key) {
         .then(function (results) {
             if (!results.rows.length) {
                 def.reject(false);
-            };
+            }
 
             def.resolve(results.rows.item(0).value);
     });

@@ -6,10 +6,6 @@ var deferred = require('deferred');
 var os = require('os');
 var exec = require('child_process').exec;
 var humanizeDuration = require('humanize-duration');
-var consts = {
-    savingDir: process.env[(process.platform == 'win32') ? 'USERPROFILE' : 'HOME'] + '/selfielapse'
-};
-
 
 global.window = window;
 global.navigator = navigator;
@@ -21,7 +17,6 @@ global.deferred = deferred;
 global.os = os;
 global.exec = exec;
 global.humanizeDuration = humanizeDuration;
-global.consts = consts;
 
 gui.Window.get().showDevTools();
 
@@ -29,49 +24,79 @@ window.SelfieLapse = function (){
     this.db = require('./database.js');
     this.ui = require('./ui.js');
     this.camera = require('./camera.js');
-    var self = this;
-
-    //create dir if not exists
-    if (!fs.existsSync(consts.savingDir)){
-        fs.mkdirSync(consts.savingDir);
-    }
 
     this.takeAndSavePhoto = function () {
+        var self = this;
         eventEmitter.emit('takingPhoto');
+
+        this.checkOutputDir();
         this.camera.takePhoto(function(base64){
             base64 = base64.replace(/^data:image\/png;base64,/, '');
 
             var filename = Date.now() + '.png';
 
-            fs.writeFile(consts.savingDir + '/'+ filename, base64, 'base64', function(err){
-                if (err) throw err;
+            self.db.getSetting('saveLocation').then(function(path) {
+                fs.writeFile(path + '/'+ filename, base64, 'base64', function(err){
+                    if (err) throw err;
 
-                self.db.addSnapshot(filename);
-                self.db.isTimeExpired();
-                eventEmitter.emit('endtakingPhoto');
+                    self.db.addSnapshot(filename);
+                    self.updateNextTimestamp();
+                    eventEmitter.emit('endtakingPhoto');
+                });
             });
         });
     };
 
-    this.CRON = function() {
-        self.db.isTimeExpired().then(
-            function(){
-                eventEmitter.emit('takePhoto');
-            },
-            function(){
-                //too early!
-            }
-        );
+    this.updateNextTimestamp = function() {
+        var self = this;
+
+        this.db.getNextShootingTimestamp()
+            .then(function(ms){
+                self.nextShootTimestamp = ms;
+            });
     };
 
-    this.CRON();
+    this.timer = function() {
+        if (!this.nextShootTimestamp)
+            return false;
 
-    eventEmitter.on('checkCRON', this.CRON.bind(this));
-    eventEmitter.on('takePhoto', this.takeAndSavePhoto.bind(this));
-    window.setInterval(this.CRON.bind(this), 300 * 1000); //check each 5 minute
+        var msRemaining = parseInt( (this.nextShootTimestamp - Date.now()) );
+
+        if(msRemaining <= 0) {
+            //time is expired, take a new photo
+            eventEmitter.emit('takePhoto');
+        }
+
+        //to early
+        eventEmitter.emit('msRemaining', msRemaining);
+    };
+
+    this.checkOutputDir = function(){
+        //make sure the output folder exists
+        var self = this;
+
+        this.db.getSetting('saveLocation').then(function(path) {
+            self.ui.saveLocation = path; 
+            if (!fs.existsSync(path)) fs.mkdirSync(path);
+        });
+    };
+
+    this.init = function() {
+        var self = this;
+        this.nextShootTimestamp = null; //timestamp of the next shooting
+
+        this.checkOutputDir();
+        this.updateNextTimestamp();
+
+        window.setInterval(this.timer.bind(this), 1000);
+        eventEmitter.on('takePhoto', this.takeAndSavePhoto.bind(this));
+    };
+
+    this.init();
 };
 
 
 document.addEventListener("DOMContentLoaded", function () {
-    new SelfieLapse();
+    var app = new SelfieLapse();
+    app.init()
 });

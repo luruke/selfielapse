@@ -1,5 +1,7 @@
 var UI = function(){
+    var self = this;
     this.shooting = false;
+    this.saveLocation = '.';
 
     this.shortEnglishHumanizer = humanizeDuration.humanizer({
         language: 'shortEn',
@@ -44,7 +46,7 @@ var UI = function(){
     this.menu.append(new gui.MenuItem({
         label: 'Open Folder',
         click: function() {
-            gui.Shell.openItem(consts.savingDir);
+            gui.Shell.openItem(self.saveLocation);
         }
     }));
 
@@ -61,48 +63,38 @@ var UI = function(){
 
     this.tray.menu = this.menu;
 
-    eventEmitter.on('takePhoto', function(){
-        this.menu.items[2].label = 'Shooting...';
-        this.menu.items[0].label = 'Cheese :)';
-
-        this.tray.icon = 'src/shooting.png';
-        this.shooting = true;
-    }.bind(this));
-
-    eventEmitter.on('endtakingPhoto', function(){
-        this.menu.items[2].label = 'Take Snapshot';
-        this.tray.icon = 'src/normal.png';
-
-        this.shooting = false;
-        this.tickNextShoot();
-    }.bind(this));
-
-
-    this.nextShootTimestamp = Date.now(); //Timestamp of the next shoot
-    this.clockNextShoot = window.setInterval(this.tickNextShoot.bind(this), 1000);
-
-    eventEmitter.on('nextShoot', function(timestamp) {
-        this.nextShootTimestamp = timestamp;
-    }.bind(this));
+    //Binding event listeners
+    eventEmitter.on('takePhoto', this.takingPhoto.bind(this));
+    eventEmitter.on('endtakingPhoto', this.endtakingPhoto.bind(this));
+    eventEmitter.on('msRemaining', this.updateCounter.bind(this));
 };
 
-UI.prototype.tickNextShoot = function() {
+UI.prototype.takingPhoto = function() {
+    this.menu.items[2].label = 'Shooting...';
+    this.menu.items[0].label = 'Cheese :)';
+
+    this.tray.icon = 'src/shooting.png';
+    this.shooting = true;
+};
+
+UI.prototype.endtakingPhoto = function() {
+    this.menu.items[2].label = 'Take Snapshot';
+    this.tray.icon = 'src/normal.png';
+
+    this.shooting = false;
+};
+
+UI.prototype.updateCounter = function(msRemaining) {
     if (this.shooting)
         return false;
 
-    var msRemaining = parseInt( (this.nextShootTimestamp - Date.now()) );
-
     if(msRemaining <= 0) {
-        eventEmitter.emit('checkCRON');
         this.menu.items[0].label = 'Cheese :)';
-
         return false;
     }
 
     var text = this.shortEnglishHumanizer(msRemaining, { round: true });
     this.menu.items[0].label = 'Next shooting in '+ text;
 };
-
-
 
 module.exports = new UI();
