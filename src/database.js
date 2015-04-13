@@ -6,7 +6,7 @@ var Database = function() {
 
     this.defaultSettings = {
         saveLocation: process.env[(process.platform == 'win32') ? 'USERPROFILE' : 'HOME'] + '/selfielapse',
-        shootEach: 3600, //in seconds, 1h
+        shootEach: 300//3600, //in seconds, 1h
     };
 
     this.initialize();
@@ -42,7 +42,7 @@ Database.prototype.initialize = function () {
 
     this.db = window.openDatabase(this.dbName, this.dbVersion, this.dbDesc, 2 * 1024 * 1024);
 
-    this.drop(); //temporary, start a fresh session
+    //this.drop(); //temporary, start a fresh session
     self.sql('CREATE TABLE IF NOT EXISTS snapshots (id INTEGER PRIMARY KEY, filename VARCHAR, timestamp TEXT)');
     self.sql('CREATE TABLE IF NOT EXISTS settings (key VARCHAR, value VARCHAR)');
 
@@ -51,10 +51,38 @@ Database.prototype.initialize = function () {
     }
 };
 
-Database.prototype.hasTodaySnapshot = function () {
-    return false;
+//return true if it's time to add a new photo!
+Database.prototype.isTimeExpired = function () {
+    var self = this;
+    var def = deferred();
 
-    //select max(datetime) from tableName;
+    this.sql('SELECT MAX(timestamp) as timestamp from snapshots')
+        .then(function(results){
+
+            if(!results.rows.length || !results.rows.item(0).timestamp) {
+                //there is no photo on the db yet
+                def.resolve();
+            }
+
+            var lastTimeStamp = parseInt( results.rows.item(0).timestamp ),
+                currentTimeStamp = Date.now(),
+                difference = parseInt( (currentTimeStamp - lastTimeStamp) / 1000 ); //secs
+
+            self.getSetting('shootEach').then(function(value) {
+                value = parseInt(value);
+
+                if (difference > value) {
+                    return def.resolve();
+                } else {
+                    var nextShootTimestamp = lastTimeStamp + (value * 1000);
+                    eventEmitter.emit('nextShoot', nextShootTimestamp);
+                    return def.reject();
+                }
+            });
+
+        });
+
+    return def.promise;
 };
 
 Database.prototype.addSnapshot = function (fileName) {
@@ -85,7 +113,7 @@ Database.prototype.setSetting = function (key, value, callback) {
         function (result){
             self.sql('UPDATE settings SET value=? WHERE key=?', [ value, key ]).then(function(){
                 def.resolve();
-            }); 
+            });
         },
         function (result){
             self.sql('INSERT INTO settings (key, value) VALUES (?, ?)', [ key, value ]).then(function(){

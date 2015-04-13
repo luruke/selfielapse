@@ -5,9 +5,11 @@ var gui = require('nw.gui');
 var deferred = require('deferred');
 var os = require('os');
 var exec = require('child_process').exec;
+var humanizeDuration = require('humanize-duration');
 var consts = {
     savingDir: process.env[(process.platform == 'win32') ? 'USERPROFILE' : 'HOME'] + '/selfielapse'
 };
+
 
 global.window = window;
 global.navigator = navigator;
@@ -18,7 +20,10 @@ global.eventEmitter = eventEmitter;
 global.deferred = deferred;
 global.os = os;
 global.exec = exec;
+global.humanizeDuration = humanizeDuration;
 global.consts = consts;
+
+gui.Window.get().showDevTools();
 
 window.SelfieLapse = function (){
     this.db = require('./database.js');
@@ -42,16 +47,28 @@ window.SelfieLapse = function (){
                 if (err) throw err;
 
                 self.db.addSnapshot(filename);
+                self.db.isTimeExpired();
                 eventEmitter.emit('endtakingPhoto');
             });
         });
     };
 
-    eventEmitter.on('takePhoto', this.takeAndSavePhoto.bind(this));
+    this.CRON = function() {
+        self.db.isTimeExpired().then(
+            function(){
+                eventEmitter.emit('takePhoto');
+            },
+            function(){
+                //too early!
+            }
+        );
+    };
 
-    window.setInterval(function(){
-        eventEmitter.emit('takePhoto');
-    }, 60 * 1000);
+    this.CRON();
+
+    eventEmitter.on('checkCRON', this.CRON.bind(this));
+    eventEmitter.on('takePhoto', this.takeAndSavePhoto.bind(this));
+    window.setInterval(this.CRON.bind(this), 300 * 1000); //check each 5 minute
 };
 
 

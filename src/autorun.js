@@ -1,3 +1,4 @@
+//eventually this could be a single node module
 var Autorun = function() {
     if(os.platform() !== 'darwin'){
         return false;
@@ -18,10 +19,10 @@ Autorun.prototype.checkStatus = function() {
 
     exec('launchctl list | grep com.capablemonkey.sleepApp', function(error, stdout, stderr) {
 
-        /*if (error !== null && error.code === 1) { 
+        /*if (error !== null && error.code === 1) {
             return def.resolve(false);
         }*/
-    
+
         if (stdout.length) {
             def.resolve(true);
         } else {
