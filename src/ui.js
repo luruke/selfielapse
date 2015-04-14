@@ -55,6 +55,21 @@ var UI = function(){
     }));
 
     this.menu.append(new gui.MenuItem({
+        label: 'Settings',
+        click: function() {
+            var new_win = gui.Window.open('settings.html', {
+                title: 'Settings',
+                toolbar: false,
+                frame: true,
+                resizable: false,
+                fullscreen: false,
+                width: 300,
+                height: 500
+            });
+        }
+    }));
+
+    this.menu.append(new gui.MenuItem({
         label: 'Quit',
         click: function() {
             gui.App.quit();
@@ -66,7 +81,6 @@ var UI = function(){
     //Binding event listeners
     eventEmitter.on('takePhoto', this.takingPhoto.bind(this));
     eventEmitter.on('endtakingPhoto', this.endtakingPhoto.bind(this));
-    eventEmitter.on('msRemaining', this.updateCounter.bind(this));
 };
 
 UI.prototype.takingPhoto = function() {

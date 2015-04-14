@@ -99,9 +99,11 @@ Database.prototype.getSetting = function (key) {
     return def.promise;
 };
 
-Database.prototype.setSetting = function (key, value, callback) {
+Database.prototype.setSetting = function (key, value) {
     var self = this;
     var def = deferred();
+
+    eventEmitter.emit('changeSetting:' + key, value);
 
     this.getSetting(key).then(
         function (result){

@@ -18,28 +18,29 @@ global.os = os;
 global.exec = exec;
 global.humanizeDuration = humanizeDuration;
 
+global.db = require('./database.js');
+global.ui = require('./ui.js');
+global.camera = require('./camera.js');
+
 gui.Window.get().showDevTools();
 
 window.SelfieLapse = function (){
-    this.db = require('./database.js');
-    this.ui = require('./ui.js');
-    this.camera = require('./camera.js');
 
     this.takeAndSavePhoto = function () {
         var self = this;
         eventEmitter.emit('takingPhoto');
 
         this.checkOutputDir();
-        this.camera.takePhoto(function(base64){
+        global.camera.takePhoto(function(base64){
             base64 = base64.replace(/^data:image\/png;base64,/, '');
 
             var filename = Date.now() + '.png';
 
-            self.db.getSetting('saveLocation').then(function(path) {
+            global.db.getSetting('saveLocation').then(function(path) {
                 fs.writeFile(path + '/'+ filename, base64, 'base64', function(err){
                     if (err) throw err;
 
-                    self.db.addSnapshot(filename);
+                    global.db.addSnapshot(filename);
                     self.updateNextTimestamp();
                     eventEmitter.emit('endtakingPhoto');
                 });
@@ -50,7 +51,7 @@ window.SelfieLapse = function (){
     this.updateNextTimestamp = function() {
         var self = this;
 
-        this.db.getNextShootingTimestamp()
+        global.db.getNextShootingTimestamp()
             .then(function(ms){
                 self.nextShootTimestamp = ms;
             });
@@ -68,15 +69,15 @@ window.SelfieLapse = function (){
         }
 
         //to early
-        eventEmitter.emit('msRemaining', msRemaining);
+        global.ui.updateCounter(msRemaining);
     };
 
     this.checkOutputDir = function(){
         //make sure the output folder exists
         var self = this;
 
-        this.db.getSetting('saveLocation').then(function(path) {
-            self.ui.saveLocation = path; 
+        global.db.getSetting('saveLocation').then(function(path) {
+            global.ui.saveLocation = path; 
             if (!fs.existsSync(path)) fs.mkdirSync(path);
         });
     };
@@ -97,10 +98,10 @@ window.SelfieLapse = function (){
 
 
 document.addEventListener("DOMContentLoaded", function () {
-    try {
+    //try {
         var app = new SelfieLapse();
         app.init();
-    } catch(err) {
-        window.alert('Error:', err);
-    }
+    //} catch(err) {
+    //    window.alert('Error:', err);
+    //}
 });
