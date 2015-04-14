@@ -88,7 +88,7 @@ window.SelfieLapse = function (){
         this.checkOutputDir();
         this.updateNextTimestamp();
 
-        window.setInterval(this.timer.bind(this), 1000);
+        global.setInterval(this.timer.bind(this), 1000);
         eventEmitter.on('takePhoto', this.takeAndSavePhoto.bind(this));
     };
 

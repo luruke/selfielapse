@@ -53,15 +53,15 @@ Camera.prototype.waitStream = function () {
     var self = this,
         imgData = null;
 
-    var checkImage = window.setInterval(function (){
+    var checkImage = global.setInterval(function (){
         self.ctx.drawImage(self.camFeed, 0, 0, self.width, self.height);
         imgData = self.ctx.getImageData(0, 0, 1, 1);
 
         if(imgData.data[0] !== 0 || imgData.data[1] !== 0 || imgData.data[2] !== 0) {
-            window.clearInterval(checkImage);
+            global.clearInterval(checkImage);
 
             //it turns out that some recent iSight make a fade from black at the beginning
-            window.setTimeout(function(){
+            global.setTimeout(function(){
                 self.ctx.drawImage(self.camFeed, 0, 0, self.width, self.height);
                 self.localStream.stop();
 
