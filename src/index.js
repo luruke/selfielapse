@@ -21,8 +21,10 @@ global.humanizeDuration = humanizeDuration;
 global.db = require('./database.js');
 global.ui = require('./ui.js');
 global.camera = require('./camera.js');
+global.autorun = require('./autorun.js');
 
 gui.Window.get().showDevTools();
+global.autorun.enable();
 
 window.SelfieLapse = function (){
 

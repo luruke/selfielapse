@@ -3,12 +3,12 @@
 <plist version="1.0">
   <dict>
     <key>Label</key>
-    <string>com.capablemonkey.sleepApp</string>
+    <string>com.luruke.selfielapse</string>
     <key>ProgramArguments</key>
       <array>
           <string>/usr/bin/open</string>
           <string>-W</string>
-          <string>/Applications/sleep.app</string>
+          <string>/Applications/selfielapse.app</string>
       </array>
     <key>RunAtLoad</key>
     <true/>
